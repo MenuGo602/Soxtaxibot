@@ -5,22 +5,14 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from config import TOKEN
-import handlers  # Faylni to'liq import qilamiz
+import handlers  # handlers ichida dp bor deb hisoblaymiz
 
-# 1. Bot va Dispatcher obyektlarini yaratamiz
+# Bot va Dispatcher yaratish
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-dp = Dispatcher()
 
-# Handlerlar ichidagi barcha dp dekoratorlarini asosiy dp ga ulab chiqamiz
-# Agar handlers ichida router bo'lsa, uni qo'shadi, aks holda tekshiradi
-if hasattr(handlers, 'router'):
-    dp.include_router(handlers.router)
-elif hasattr(handlers, 'dp'):
-    dp.include_router(handlers.dp.router)
-
-# 2. Render kutayotgan veb-server qismi
+# Render uchun oddiy veb-server
 async def handle(request):
-    return web.Response(text="Bot is running smoothly!")
+    return web.Response(text="Bot is running!")
 
 async def start_webhook():
     app = web.Application()
@@ -31,18 +23,22 @@ async def start_webhook():
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
 
-# 3. Asosiy ishga tushirish funksiyasi
+# Asosiy funksiya
 async def main():
-    # Render uchun fonda veb-sahifani yurgizish
+    # Render portini ochish
     asyncio.create_task(start_webhook())
 
-    # Telegram xabarlarini tozalab, yangidan polling boshlash
+    # Agar handlers ichida 'dp' bo'lsa, pollingni o'sha bilan boshlaymiz
+    if hasattr(handlers, 'dp'):
+        dp = handlers.dp
+    else:
+        # Agar yo'q bo'lsa, yangi yaratamiz
+        dp = Dispatcher()
+        # Bu yerda o'z handlerlaringizni ulashingiz kerak bo'lishi mumkin
+        
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        print("Bot stopped")
-        
+    asyncio.run(main())
+    
