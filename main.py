@@ -1,13 +1,11 @@
 import os
 import asyncio
 from aiohttp import web
-from aiogram import Bot
-from config import TOKEN, dp  # config.py ichidagi dp ni olamiz
+from aiogram import Bot, Dispatcher
+from config import TOKEN, dp  # config.py dan dp ni import qilyapmiz
 
-# Botni yaratamiz
 bot = Bot(token=TOKEN)
 
-# 1. Render uchun oddiy veb-server (port 10000)
 async def handle(request):
     return web.Response(text="Bot is running!")
 
@@ -20,16 +18,18 @@ async def start_webhook():
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
 
-# 2. Asosiy funksiya
 async def main():
-    # Render veb-serverini yurgizamiz
+    # 1. Eski webhook'larni tozalash (ConflictError ni yo'qotadi)
+    await bot.delete_webhook(drop_pending_updates=True)
+    
+    # 2. Veb-serverni yurgizish
     asyncio.create_task(start_webhook())
     
-    # handlers.py import qilinishi shart (u ichidagi dekoratorlarni dp ga ulaydi)
-    import handlers  
+    # 3. Handlerlarni import qilish
+    import handlers
     
-    # Botni ishga tushiramiz
-    await bot.delete_webhook(drop_pending_updates=True)
+    # 4. Pollingni boshlash
+    print("Bot muvaffaqiyatli ishga tushdi!")
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
