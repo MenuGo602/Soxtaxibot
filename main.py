@@ -1,16 +1,13 @@
 import os
 import asyncio
 from aiohttp import web
-from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from config import TOKEN
-import handlers  # handlers ichida dp bor deb hisoblaymiz
+from aiogram import Bot
+from config import TOKEN, dp  # config.py ichidagi dp ni olamiz
 
-# Bot va Dispatcher yaratish
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+# Botni yaratamiz
+bot = Bot(token=TOKEN)
 
-# Render uchun oddiy veb-server
+# 1. Render uchun oddiy veb-server (port 10000)
 async def handle(request):
     return web.Response(text="Bot is running!")
 
@@ -23,19 +20,15 @@ async def start_webhook():
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
 
-# Asosiy funksiya
+# 2. Asosiy funksiya
 async def main():
-    # Render portini ochish
+    # Render veb-serverini yurgizamiz
     asyncio.create_task(start_webhook())
-
-    # Agar handlers ichida 'dp' bo'lsa, pollingni o'sha bilan boshlaymiz
-    if hasattr(handlers, 'dp'):
-        dp = handlers.dp
-    else:
-        # Agar yo'q bo'lsa, yangi yaratamiz
-        dp = Dispatcher()
-        # Bu yerda o'z handlerlaringizni ulashingiz kerak bo'lishi mumkin
-        
+    
+    # handlers.py import qilinishi shart (u ichidagi dekoratorlarni dp ga ulaydi)
+    import handlers  
+    
+    # Botni ishga tushiramiz
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
