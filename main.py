@@ -1,28 +1,44 @@
+import os
 import asyncio
-import logging
-import sys
-from config import bot, dp
+from aiohttp import web
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from config import TOKEN
+import handlers  # Asosiy taksi va navbat tizimi logikasi
 
-# Alohida fayllardagi barcha modullarni botga ulash
-import handlers        # Asosiy taksi va navbat tizimi
-import client_actions  # Arizani bekor qilish tizimi
-import driver_chat     # Avtomatlashtirilgan anonim chat tizimi
-import client_post     # Yangi qo'shilgan pochta va yuk yuborish tizimi
+# 1. Render kutayotgan veb-server (Portni eshitish uchun)
+async def handle(request):
+    return web.Response(text="Bot is running smoothly!")
 
-# Loglarni sozlash (Xatoliklarni terminalda aniq ko'rish uchun)
-logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+async def start_webhook():
+    app = web.Application()
+    app.router.add_get('/', handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.environ.get('PORT', 10000))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
 
+# 2. Botni ishga tushirish qismi
 async def main():
-    print("🤖 So'xTaxi boti barcha modullar bilan muvaffaqiyatli ishga tushdi...")
+    # Render uchun fona veb-sahifani yurgizish
+    asyncio.create_task(start_webhook())
+
+    # Bot va Dispatcher sozlamalari
+    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    dp = Dispatcher()
     
-    # Bot o'chiq bo'lgan paytda kelgan eski xabarlarni o'chirib yuborish
+    # Handlerlarni ulash
+    dp.include_router(handlers.router)
+    
+    # Telegram xabarlarini tozalab, yangidan polling boshlash
     await bot.delete_webhook(drop_pending_updates=True)
-    
-    # Botni yangi xabarlarni kutish rejimida ishga tushirish
     await dp.start_polling(bot)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        print("🤖 Bot to'xtatildi!")
+        print("Bot stopped")
+        
