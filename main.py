@@ -5,9 +5,12 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from config import TOKEN
-import handlers  # Asosiy taksi va navbat tizimi logikasi
 
-# 1. Render kutayotgan veb-server (Portni eshitish uchun)
+# 1. Bot va Dispatcher obyektlarini yaratamiz
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+dp = Dispatcher()
+
+# 2. Render kutayotgan veb-server (Portni eshitish uchun)
 async def handle(request):
     return web.Response(text="Bot is running smoothly!")
 
@@ -20,18 +23,14 @@ async def start_webhook():
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
 
-# 2. Botni ishga tushirish qismi
+# 3. Asosiy ishga tushirish funksiyasi
 async def main():
-    # Render uchun fona veb-sahifani yurgizish
+    # Render uchun fonda veb-sahifani yurgizish
     asyncio.create_task(start_webhook())
 
-    # Bot va Dispatcher sozlamalari
-    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    dp = Dispatcher()
-    
-    # Handlerlarni ulash
-    dp.include_router(handlers.router)
-    
+    # Handlerlarni hozirgina yaratilgan 'dp' ga ulab olish
+    import handlers  
+
     # Telegram xabarlarini tozalab, yangidan polling boshlash
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
